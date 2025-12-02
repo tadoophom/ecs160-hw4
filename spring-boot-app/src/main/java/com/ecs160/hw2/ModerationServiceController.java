@@ -16,4 +16,9 @@ public class ModerationServiceController {
     public String summarizeIssue(@RequestParam String issue) {
         return "{}";
     }
+
+    @GetMapping("/compare_issues")
+    public String compareIssues(@RequestParam String issue1, @RequestParam String issue2) {
+        return "{}";
+    }
 }
