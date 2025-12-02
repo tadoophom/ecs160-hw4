@@ -11,4 +11,9 @@ public class ModerationServiceController {
     public String findBugs(@RequestParam String code) {
         return "[]";
     }
+
+    @GetMapping("/summarize_issue")
+    public String summarizeIssue(@RequestParam String issue) {
+        return "{}";
+    }
 }
