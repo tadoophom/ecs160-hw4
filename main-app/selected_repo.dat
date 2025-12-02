@@ -1,0 +1,5 @@
+repo:Genymobile:scrcpy
+app/src/main.c
+app/src/scrcpy.c
+app/src/adb/adb.c
+app/src/server.c
