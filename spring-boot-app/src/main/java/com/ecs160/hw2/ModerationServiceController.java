@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ModerationServiceController {
 
+    private OllamaClient client = new OllamaClient();
+
     @GetMapping("/find_bugs")
     public String findBugs(@RequestParam String code) {
         return "[]";
