@@ -39,7 +39,27 @@ public class ModerationServiceController {
 
     @GetMapping("/summarize_issue")
     public String summarizeIssue(@RequestParam String issue) {
-        return "{}";
+        if (issue == null || issue.isEmpty()) {
+            return "{}";
+        }
+
+        String prompt = "You are a bug analysis system. Return ONLY valid JSON.\n\n" +
+                       "Analyze this GitHub issue and extract bug information.\n\n" +
+                       "Required format:\n" +
+                       "bug_type: string (type of bug, e.g. \"NullPointerException\")\n" +
+                       "line: number (line number mentioned, or -1 if not specified)\n" +
+                       "description: string (brief summary of the issue)\n" +
+                       "filename: string (file mentioned, or \"unknown\" if not specified)\n\n" +
+                       "Example: {\"bug_type\":\"NullPointerException\",\"line\":42,\"description\":\"Null pointer error in auth module\",\"filename\":\"auth.c\"}\n\n" +
+                       "Return ONLY the JSON object. Do NOT add explanations.\n\n" +
+                       "GitHub Issue:\n" + issue;
+
+        try {
+            String response = client.generateJsonResponse(prompt);
+            return response;
+        } catch (Exception e) {
+            return "{\"bug_type\":\"\",\"line\":-1,\"description\":\"Failed to process\",\"filename\":\"\"}";
+        }
     }
 
     @GetMapping("/compare_issues")
