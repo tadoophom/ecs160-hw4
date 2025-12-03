@@ -64,6 +64,25 @@ public class ModerationServiceController {
 
     @GetMapping("/compare_issues")
     public String compareIssues(@RequestParam String issue1, @RequestParam String issue2) {
-        return "{}";
+        if (issue1 == null || issue1.isEmpty() || issue2 == null || issue2.isEmpty()) {
+            return "{}";
+        }
+
+        String prompt = "Compare these two GitHub issues and determine if they describe the same bug.\n\n" +
+                       "Return a JSON object with:\n" +
+                       "is_same_issue: boolean (true if they describe the same bug)\n" +
+                       "confidence: number (0.0 to 1.0)\n" +
+                       "explanation: string (brief reasoning)\n\n" +
+                       "Example: {\"is_same_issue\":true,\"confidence\":0.95,\"explanation\":\"Both describe null pointer in auth module\"}\n\n" +
+                       "Return ONLY the JSON object. Do NOT add explanations.\n\n" +
+                       "Issue 1:\n" + issue1 + "\n\n" +
+                       "Issue 2:\n" + issue2;
+
+        try {
+            String response = client.generateJsonResponse(prompt);
+            return response;
+        } catch (Exception e) {
+            return "{\"is_same_issue\":false,\"confidence\":0.0,\"explanation\":\"Error processing\"}";
+        }
     }
 }
