@@ -33,6 +33,8 @@ public class OllamaClient {
 
         String response = extractJsonField(responseText.toString(), "response");
         
+        response = response.replaceAll("(?s)<think>.*?</think>", "");
+        
         int firstBrace = response.indexOf('{');
         int firstBracket = response.indexOf('[');
         
