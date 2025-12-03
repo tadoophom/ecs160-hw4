@@ -5,6 +5,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class OllamaClient {
 
@@ -29,7 +31,21 @@ public class OllamaClient {
         }
         reader.close();
 
-        return responseText.toString();
+        String response = extractJsonField(responseText.toString(), "response");
+        return response;
+    }
+
+    private String extractJsonField(String json, String fieldName) {
+        Pattern pattern = Pattern.compile("\"" + fieldName + "\":\"((?:[^\"\\\\]|\\.)*)\"");
+        Matcher matcher = pattern.matcher(json);
+        if (matcher.find()) {
+            return unescapeJson(matcher.group(1));
+        }
+        return json;
+    }
+
+    private String unescapeJson(String text) {
+        return text.replace("\\\"", "\"").replace("\\n", "\n").replace("\\r", "\r");
     }
 }
 
