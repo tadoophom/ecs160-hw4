@@ -35,6 +35,14 @@ public class OllamaClient {
         
         response = response.replaceAll("(?s)<think>.*?</think>", "");
         
+        if (response.contains("```json")) {
+            int startIndex = response.indexOf("```json") + 7;
+            int endIndex = response.indexOf("```", startIndex);
+            if (endIndex > startIndex) {
+                response = response.substring(startIndex, endIndex).trim();
+            }
+        }
+        
         int firstBrace = response.indexOf('{');
         int firstBracket = response.indexOf('[');
         
