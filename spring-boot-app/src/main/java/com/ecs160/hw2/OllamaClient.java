@@ -32,6 +32,32 @@ public class OllamaClient {
         reader.close();
 
         String response = extractJsonField(responseText.toString(), "response");
+        
+        int firstBrace = response.indexOf('{');
+        int firstBracket = response.indexOf('[');
+        
+        if (firstBrace != -1 && (firstBracket == -1 || firstBrace < firstBracket)) {
+            int braces = 0;
+            for (int i = firstBrace; i < response.length(); i++) {
+                char c = response.charAt(i);
+                if (c == '{') braces++;
+                if (c == '}') braces--;
+                if (braces == 0) {
+                    return response.substring(firstBrace, i + 1).trim();
+                }
+            }
+        } else if (firstBracket != -1) {
+            int brackets = 0;
+            for (int i = firstBracket; i < response.length(); i++) {
+                char c = response.charAt(i);
+                if (c == '[') brackets++;
+                if (c == ']') brackets--;
+                if (brackets == 0) {
+                    return response.substring(firstBracket, i + 1).trim();
+                }
+            }
+        }
+        
         return response;
     }
 
