@@ -3,12 +3,17 @@ package com.ecs160.hw;
 import com.ecs160.hw.model.Issue;
 import com.ecs160.hw.model.Repo;
 import com.ecs160.hw.service.GitService;
-import com.ecs160.hw.service.MicroserviceCaller;
 import com.ecs160.hw.service.RedisRepoService;
 import com.ecs160.hw.util.FileReader;
 import com.ecs160.hw.util.JsonHandler;
 import com.ecs160.hw.util.SelectedRepoFile;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -34,6 +39,7 @@ public class App {
 
         SelectedRepoFile selectedRepoFile = new SelectedRepoFile(Path.of("selected_repo.dat"));
         selectedRepoFile.write(selected.repoId, filesToAnalyze);
+
         System.out.println("Selected repo: " + selected.repoId);
         System.out.println("Files:");
         filesToAnalyze.forEach(System.out::println);
@@ -47,58 +53,86 @@ public class App {
                 gitService.cloneRepo(repoUrl, cloneDir);
             }
 
-            MicroserviceCaller client = new MicroserviceCaller("http://localhost:8080");
-            List<String> issueList1 = new ArrayList<>();
+            String baseUrl = "http://localhost:30000";
 
+            List<String> issueList1 = new ArrayList<>();
             if (selected.issues != null) {
                 for (int i = 0; i < 10; i++) {
                     Issue issue = selected.issues.get(i);
                     String json = JsonHandler.issueToJson(issue);
-                    String summary = client.post("/summarize_issue", json);
-                    issueList1.add(summary);
+                    
+                    String encoded = URLEncoder.encode(json, StandardCharsets.UTF_8);
+                    URL url = new URL(baseUrl + "/summarize_issue?issue=" + encoded);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    String resp = "";
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        resp += line;
+                    }
+                    in.close();
+                    
+                    issueList1.add(resp);
+                    System.out.println("summarized issue " + i);
                 }
             }
 
             List<String> issueList2 = new ArrayList<>();
             List<FileReader.FileContent> files = FileReader.readFiles(cloneDir, filesToAnalyze);
-
             for (FileReader.FileContent file : files) {
-                String bugs = client.post("/find_bugs", file.content);
-                if (bugs != null && !bugs.isEmpty()) {
-                    issueList2.add(bugs);
+                String encoded = URLEncoder.encode(file.content, StandardCharsets.UTF_8);
+                URL url = new URL(baseUrl + "/find_bugs?code=" + encoded);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                String resp = "";
+                String line;
+                while ((line = in.readLine()) != null) {
+                    resp += line;
+                }
+                in.close();
+                
+                if (resp != null && !resp.equals("[]")) {
+                    issueList2.add(resp);
                 }
             }
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("{\"list1\":[");
+            System.out.println("comparing issues...");
+            List<String> matches = new ArrayList<>();
+
             for (int i = 0; i < issueList1.size(); i++) {
-                sb.append(issueList1.get(i));
-                if (i < issueList1.size() - 1) {
-                    sb.append(",");
+                for (int j = 0; j < issueList2.size(); j++) {
+                    String enc1 = URLEncoder.encode(issueList1.get(i), StandardCharsets.UTF_8);
+                    String enc2 = URLEncoder.encode(issueList2.get(j), StandardCharsets.UTF_8);
+                    
+                    URL url = new URL(baseUrl + "/compare_issues?issue1=" + enc1 + "&issue2=" + enc2);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    String resp = "";
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        resp += line;
+                    }
+                    in.close();
+                    
+                    if (resp.contains("\"is_same_issue\":true")) {
+                        matches.add(resp);
+                    }
                 }
             }
-            sb.append("],\"list2\":[");
-            for (int i = 0; i < issueList2.size(); i++) {
-                String b = issueList2.get(i).trim();
-                if (b.startsWith("[")) {
-                    b = b.substring(1);
-                }
-                if (b.endsWith("]")) {
-                    b = b.substring(0, b.length() - 1);
-                }
-                sb.append(b);
-                if (i < issueList2.size() - 1 && !b.isEmpty()) {
-                    sb.append(",");
-                }
-            }
-            sb.append("]}");
 
-            String result = client.post("/check_equivalence", sb.toString());
-            System.out.println(result);
+            System.out.println("matches found: " + matches.size());
+            for (String m : matches) {
+                System.out.println(m);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 }
