@@ -1,1 +1,17 @@
-reference
+# Maven build artifacts
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# Mac system files
+.DS_Store
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Redis dump
+dump.rdb
