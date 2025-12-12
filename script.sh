@@ -1,24 +1,16 @@
 #!/bin/bash
 
-# Assume redis is up and running
-cd persistence-framework
+cd spring-boot-app
 mvn clean install
-# Insert mvn command to insert to local repository
+mvn spring-boot:run &
+SPRING_PID=$!
 cd ..
 
-cd microservice-framework
-mvn clean install
-# Insert mvn command to insert to local repository
-cd ..
-
-cd microservices
-mvn clean install
-mvn exec:java &
-cd ..
-
-sleep 20 # Wait for microservices to start
+sleep 10
 
 cd main-app
 mvn clean install
 mvn exec:java
 cd ..
+
+kill $SPRING_PID
