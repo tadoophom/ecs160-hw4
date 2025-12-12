@@ -1,6 +1,8 @@
 package com.ecs160.hw2;
 
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -37,6 +39,11 @@ public class ModerationServiceController {
         }
     }
 
+    @PostMapping("/find_bugs")
+    public String findBugsPost(@RequestBody String code) {
+        return findBugs(code);
+    }
+
     @GetMapping("/summarize_issue")
     public String summarizeIssue(@RequestParam String issue) {
         if (issue == null || issue.isEmpty()) {
@@ -62,6 +69,11 @@ public class ModerationServiceController {
         }
     }
 
+    @PostMapping("/summarize_issue")
+    public String summarizeIssuePost(@RequestBody String issue) {
+        return summarizeIssue(issue);
+    }
+
     @GetMapping("/compare_issues")
     public String compareIssues(@RequestParam String issue1, @RequestParam String issue2) {
         if (issue1 == null || issue1.isEmpty() || issue2 == null || issue2.isEmpty()) {
@@ -83,6 +95,25 @@ public class ModerationServiceController {
             return response;
         } catch (Exception e) {
             return "{\"is_same_issue\":false,\"confidence\":0.0,\"explanation\":\"Error processing\"}";
+        }
+    }
+
+    @PostMapping("/check_equivalence")
+    public String checkEquivalence(@RequestBody String body) {
+        String prompt = "You compare two bug lists.\n\n" +
+                "Input JSON has keys:\n" +
+                "- list1: array of bug objects\n" +
+                "- list2: array of bug objects\n\n" +
+                "Return ONLY a JSON object with:\n" +
+                "equivalent: boolean\n" +
+                "confidence: number (0.0 to 1.0)\n" +
+                "explanation: string (short)\n\n" +
+                "Input:\n" + body;
+
+        try {
+            return client.generateJsonResponse(prompt);
+        } catch (Exception e) {
+            return "{\"equivalent\":false,\"confidence\":0.0,\"explanation\":\"Error processing\"}";
         }
     }
 }

@@ -47,7 +47,7 @@ public class App {
                 gitService.cloneRepo(repoUrl, cloneDir);
             }
 
-            MicroserviceCaller client = new MicroserviceCaller("http://localhost:8080");
+            MicroserviceCaller client = new MicroserviceCaller("http://localhost:30000");
             List<String> issueList1 = new ArrayList<>();
 
             if (selected.issues != null) {

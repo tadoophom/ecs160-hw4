@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,21 +18,20 @@ public class OllamaClient {
         connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/json");
 
-        String body = "{\"model\":\"deepcoder:latest\",\"prompt\":\"" + prompt + "\",\"stream\":false}";
-        
-        OutputStream out = connection.getOutputStream();
-        out.write(body.getBytes());
-        out.close();
+        String body = "{\"model\":\"deepcoder:latest\",\"prompt\":\"" + escapeJson(prompt) + "\",\"stream\":false}";
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-        StringBuilder responseText = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            responseText.append(line);
+        try (OutputStream out = connection.getOutputStream()) {
+            out.write(body.getBytes(StandardCharsets.UTF_8));
         }
-        reader.close();
 
-        String response = extractJsonField(responseText.toString(), "response");
+        int status = connection.getResponseCode();
+        if (status != 200) {
+            throw new RuntimeException("Ollama /api/generate failed: HTTP " + status);
+        }
+
+        String responseText = readAll(connection.getInputStream());
+
+        String response = extractJsonField(responseText, "response");
         
         response = response.replaceAll("(?s)<think>.*?</think>", "");
         
@@ -45,7 +45,8 @@ public class OllamaClient {
         
         int firstBrace = response.indexOf('{');
         int firstBracket = response.indexOf('[');
-        
+
+        String extracted = response;
         if (firstBrace != -1 && (firstBracket == -1 || firstBrace < firstBracket)) {
             int braces = 0;
             for (int i = firstBrace; i < response.length(); i++) {
@@ -53,7 +54,8 @@ public class OllamaClient {
                 if (c == '{') braces++;
                 if (c == '}') braces--;
                 if (braces == 0) {
-                    return response.substring(firstBrace, i + 1).trim();
+                    extracted = response.substring(firstBrace, i + 1).trim();
+                    break;
                 }
             }
         } else if (firstBracket != -1) {
@@ -63,12 +65,53 @@ public class OllamaClient {
                 if (c == '[') brackets++;
                 if (c == ']') brackets--;
                 if (brackets == 0) {
-                    return response.substring(firstBracket, i + 1).trim();
+                    extracted = response.substring(firstBracket, i + 1).trim();
+                    break;
                 }
             }
         }
-        
-        return response;
+
+        System.out.println("Ollama output:\n" + extracted);
+        return extracted;
+    }
+
+    private String readAll(java.io.InputStream in) throws Exception {
+        if (in == null) {
+            return "";
+        }
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            return sb.toString().trim();
+        }
+    }
+
+    private String escapeJson(String text) {
+        if (text == null) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder(text.length() + 16);
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            switch (c) {
+                case '\\' -> out.append("\\\\");
+                case '"' -> out.append("\\\"");
+                case '\n' -> out.append("\\n");
+                case '\r' -> out.append("\\r");
+                case '\t' -> out.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        out.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        out.append(c);
+                    }
+                }
+            }
+        }
+        return out.toString();
     }
 
     private String extractJsonField(String json, String fieldName) {
