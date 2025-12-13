@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class App {
     
@@ -54,7 +55,7 @@ public class App {
                 for (int i = 0; i < 10; i++) {
                     Issue issue = selected.issues.get(i);
                     String json = JsonHandler.issueToJson(issue);
-                    String summary = client.post("/summarize_issue", json);
+                    String summary = client.get("/summarize_issue", Map.of("issue", json));
                     issueList1.add(summary);
                 }
             }
@@ -63,7 +64,7 @@ public class App {
             List<FileReader.FileContent> files = FileReader.readFiles(cloneDir, filesToAnalyze);
 
             for (FileReader.FileContent file : files) {
-                String bugs = client.post("/find_bugs", file.content);
+                String bugs = client.get("/find_bugs", Map.of("code", file.content));
                 if (bugs != null && !bugs.isEmpty()) {
                     issueList2.add(bugs);
                 }
@@ -93,7 +94,7 @@ public class App {
             }
             sb.append("]}");
 
-            String result = client.post("/check_equivalence", sb.toString());
+            String result = client.get("/check_equivalence", Map.of("body", sb.toString()));
             System.out.println(result);
 
         } catch (Exception e) {

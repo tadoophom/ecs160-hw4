@@ -2,10 +2,12 @@ package com.ecs160.hw.service;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 public class MicroserviceCaller {
     private final String baseUrl;
@@ -14,26 +16,32 @@ public class MicroserviceCaller {
         this.baseUrl = baseUrl;
     }
     
-    public String post(String path, String body) throws Exception {
+    public String get(String path, Map<String, String> queryParams) throws Exception {
         if (!path.startsWith("/")) {
             path = "/" + path;
         }
-        
-        URL url = new URL(baseUrl + path);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        
-        try {
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true); 
-            
-            try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = body.getBytes(StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
+
+        StringBuilder query = new StringBuilder();
+        for (Map.Entry<String, String> entry : queryParams.entrySet()) {
+            if (query.length() > 0) {
+                query.append('&');
             }
-            
+            query.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
+            query.append('=');
+            query.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
+        }
+
+        String urlString = baseUrl + path + (query.length() == 0 ? "" : "?" + query);
+        URL url = URI.create(urlString).toURL();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+        try {
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+
             if (conn.getResponseCode() == 200) {
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
                     StringBuilder response = new StringBuilder();
                     String line;
                     while ((line = br.readLine()) != null) {
@@ -41,9 +49,9 @@ public class MicroserviceCaller {
                     }
                     return response.toString().trim();
                 }
-            } else {
-                throw new RuntimeException("Failed : " + conn.getResponseCode());
             }
+
+            throw new RuntimeException("Failed : " + conn.getResponseCode());
         } finally {
             conn.disconnect();
         }

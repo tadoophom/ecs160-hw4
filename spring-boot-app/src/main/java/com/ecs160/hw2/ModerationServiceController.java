@@ -1,8 +1,6 @@
 package com.ecs160.hw2;
 
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,11 +38,6 @@ public class ModerationServiceController {
         }
     }
 
-    @PostMapping("/find_bugs")
-    public String findBugsPost(@RequestBody String code) {
-        return findBugs(code);
-    }
-
     @GetMapping("/summarize_issue")
     public String summarizeIssue(@RequestParam String issue) {
         if (issue == null || issue.isEmpty()) {
@@ -69,11 +62,6 @@ public class ModerationServiceController {
         } catch (Exception e) {
             return "{\"bug_type\":\"\",\"line\":-1,\"description\":\"Failed to process\",\"filename\":\"\"}";
         }
-    }
-
-    @PostMapping("/summarize_issue")
-    public String summarizeIssuePost(@RequestBody String issue) {
-        return summarizeIssue(issue);
     }
 
     @GetMapping("/compare_issues")
@@ -101,8 +89,8 @@ public class ModerationServiceController {
         }
     }
 
-    @PostMapping("/check_equivalence")
-    public String checkEquivalence(@RequestBody String body) {
+    @GetMapping("/check_equivalence")
+    public String checkEquivalence(@RequestParam String body) {
         String prompt = "You must return ONLY valid JSON. No explanations, no thinking process, no extra text.\n\n" +
                 "Compare these two bug lists and return a JSON object with:\n" +
                 "- equivalent: boolean (true if lists describe same bugs)\n" +
