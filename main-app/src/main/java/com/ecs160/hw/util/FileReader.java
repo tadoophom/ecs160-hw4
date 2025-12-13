@@ -19,11 +19,9 @@ public class FileReader {
                 Path p = base.resolve(f);
                 if (Files.exists(p)) {
                     results.add(new FileContent(f, readFile(p)));
-                } else {
-                    System.out.println("Missing: " + p);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("Failed to read " + f + ": " + e.getMessage());
             }
         }
         return results;

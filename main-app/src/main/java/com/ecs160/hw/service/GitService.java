@@ -19,16 +19,13 @@ public class GitService {
             Process p = pb.start();
 
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
-                }
+                while (reader.readLine() != null) { }
             }
 
             return p.waitFor() == 0;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("git clone failed: " + e.getMessage());
             return false;
         }
     }
